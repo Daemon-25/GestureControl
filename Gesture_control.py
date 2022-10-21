@@ -7,13 +7,14 @@ Created on Wed Nov 10 11:59:07 2021
 
 import cv2
 import numpy as np
+import pyautogui
 
 def empty(a):
     pass
 
 def create_trackbars():
     cv2.namedWindow('Trackbars')
-    cv2.resizeWindow('Trackbars', 640, 240)
+    cv2.resizeWindow('Trackbars', 640, 300)
     cv2.createTrackbar('HueMin', 'Trackbars', 0, 179, empty)
     cv2.createTrackbar('HueMax', 'Trackbars', 0, 179, empty)
     cv2.createTrackbar('SatMin', 'Trackbars', 0, 255, empty)
@@ -63,22 +64,48 @@ def centroid(contour):
         return (-1,-1) 
     return (x,y)
 
+def create_regions(frame):
+    frame = cv2.line(frame, (100, 0), (100, 300), (0, 0, 255), 2)
+    frame = cv2.line(frame, (200, 0), (200, 300), (0, 0, 255), 2)
+    frame = cv2.line(frame, (0, 100), (300, 100), (0, 0, 255), 2)
+    frame = cv2.line(frame, (0, 200), (300, 200), (0, 0, 255), 2)
+
 vid = cv2.VideoCapture(0);
 create_trackbars()
+prev_pos = "neutral" #Variable to maintain previous position
 while(1):
     _,frame = vid.read()
     frame = cv2.flip(frame,1) # resolving mirror image issues
-    frame = frame[:300, 300:] # only considering frame from row 0-300 and col from 300-end so that main focus is on our hands
+    frame = frame[:300, :300] # only considering frame from row 0-300 and col from 300-end so that main focus is on our hands
     frame = cv2.GaussianBlur(frame,(5,5),0) # to remove noise from frame
-
+    
     mask = create_mask(frame)
     threshImg = threshold(mask)
     contours = find_contours(threshImg)
     frame = cv2.drawContours(frame,contours,-1,(255,0,0),2) # drawing all contours 
     max_cntr = max_contour(contours)  #finding maximum contour of the thresholded area
     (centroid_x,centroid_y) = centroid(max_cntr) #finding centroid of the maximum contour
+    create_regions(frame)   #Create Regions for tracking centroid
     if(centroid_x,centroid_y) != (-1,-1):
-        frame = cv2.circle(frame , (centroid_x,centroid_y) , 5 , (255,0,0) , -1) # drawing a circle on the identified centre of mass
+        frame = cv2.circle(frame , (centroid_x,centroid_y) , 5 , (255,0,0) , -1)# drawing a circle on the identified centre of mass
+        
+        if centroid_x<100:       #Set variable according to centroid position
+            curr_pos = "left"
+        elif centroid_x>200:
+            curr_pos = "right"
+        elif centroid_y>200 and centroid_x>100 and centroid_x<200:
+            curr_pos = "down"
+        elif centroid_y<100 and centroid_x>100 and centroid_x<200:
+            curr_pos = "up"
+        else:
+            curr_pos = "neutral"
+            
+        if curr_pos!=prev_pos:
+            if curr_pos!="neutral":
+                pyautogui.press(curr_pos)
+            else :
+                pyautogui.press('space')
+            prev_pos = curr_pos
     
     cv2.imshow('video',frame)
     cv2.imshow("mask",mask)
