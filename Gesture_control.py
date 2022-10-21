@@ -85,7 +85,9 @@ while(1):
     frame = cv2.drawContours(frame,contours,-1,(255,0,0),2) # drawing all contours 
     max_cntr = max_contour(contours)  #finding maximum contour of the thresholded area
     (centroid_x,centroid_y) = centroid(max_cntr) #finding centroid of the maximum contour
+    
     create_regions(frame)   #Create Regions for tracking centroid
+    
     if(centroid_x,centroid_y) != (-1,-1):
         frame = cv2.circle(frame , (centroid_x,centroid_y) , 5 , (255,0,0) , -1)# drawing a circle on the identified centre of mass
         
@@ -100,7 +102,7 @@ while(1):
         else:
             curr_pos = "neutral"
             
-        if curr_pos!=prev_pos:
+        if curr_pos!=prev_pos:  #pyautogui commands
             if curr_pos!="neutral":
                 pyautogui.press(curr_pos)
             else :
